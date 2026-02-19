@@ -1,15 +1,40 @@
 import tkinter as tk
 from tkinter import ttk
 import random
+from datetime import datetime
 
-# ---------------- FUNÇÕES ---------------- #
+# ---------------- CONFIGURAÇÃO ----------------
+
+pessoas = [
+    "Pai", "Mãe",
+    "Avô Paterno", "Avó Paterna",
+    "Avô Materno", "Avó Materna"
+]
+
+doencas_lista = [
+    "Diabetes",
+    "Hipertensão",
+    "Câncer",
+    "Doença Cardíaca",
+    "Alzheimer",
+    "Depressão",
+    "Asma",
+    "Colesterol Alto",
+    "Não possui nenhuma das doenças listadas",
+    "Não sei"
+]
+
+olhos_opcoes = ["Castanho", "Azul", "Verde", "Não sei"]
+pele_opcoes = ["Clara", "Morena", "Escura", "Não sei"]
+cabelo_opcoes = ["Preto", "Castanho", "Loiro", "Ruivo", "Não sei"]
+
+# ---------------- FUNÇÕES ----------------
 
 def converter_altura(valor):
     if not valor:
         return None
 
     valor = valor.replace(",", ".")
-
     if "." in valor:
         return float(valor)
 
@@ -26,166 +51,117 @@ def resetar_campos():
         cabelo_vars[pessoa].set("")
         altura_vars[pessoa].set("")
 
-        for doenca in doencas_vars[pessoa]:
+        for doenca in doencas_lista:
             doencas_vars[pessoa][doenca].set(False)
+
+
+def calcular():
+    resultado = ""
+
+    # ---------------- HERANÇA MENDELIANA SIMPLIFICADA ----------------
+
+    pai_olhos = olhos_vars["Pai"].get()
+    mae_olhos = olhos_vars["Mãe"].get()
+
+    if pai_olhos and mae_olhos and pai_olhos != "Não sei" and mae_olhos != "Não sei":
+        if pai_olhos == mae_olhos:
+            prob_olhos = f"Alta chance de olhos {pai_olhos}"
+        else:
+            prob_olhos = f"Chance distribuída entre {pai_olhos} e {mae_olhos}"
+    else:
+        prob_olhos = "Informação insuficiente sobre olhos"
+
+    resultado += f"👁 Olhos: {prob_olhos}\n\n"
+
+    # ---------------- ALTURA (média simples) ----------------
+
+    alturas = []
+    for pessoa in pessoas:
+        alt = converter_altura(altura_vars[pessoa].get())
+        if alt:
+            alturas.append(alt)
+
+    if alturas:
+        media = sum(alturas) / len(alturas)
+        resultado += f"📏 Altura estimada: {round(media, 2)} m\n\n"
+    else:
+        resultado += "📏 Altura: dados insuficientes\n\n"
+
+    # ---------------- DOENÇAS (estatística simples) ----------------
+
+    risco_texto = ""
+    for doenca in doencas_lista:
+        if doenca in ["Não possui nenhuma das doenças listadas", "Não sei"]:
+            continue
+
+        contagem = 0
+        for pessoa in pessoas:
+            if doencas_vars[pessoa][doenca].get():
+                contagem += 1
+
+        if contagem > 0:
+            risco = min(contagem * 15, 90)
+            risco_texto += f"{doenca}: risco estimado de {risco}%\n"
+
+    if risco_texto == "":
+        risco_texto = "Sem riscos significativos informados"
+
+    resultado += f"🧬 Risco hereditário:\n{risco_texto}"
+
+    mostrar_resultado(resultado)
+    resetar_campos()
 
 
 def mostrar_resultado(texto):
     janela = tk.Toplevel(root)
     janela.title("Resultado")
-    janela.geometry("500x500")
+    janela.geometry("500x400")
 
-    texto_widget = tk.Text(janela, wrap="word")
-    texto_widget.insert("1.0", texto)
-    texto_widget.config(state="disabled")
-    texto_widget.pack(expand=True, fill="both")
+    tk.Label(janela, text="Resultado da Simulação",
+             font=("Arial", 14, "bold")).pack(pady=10)
 
-    frame_botoes = ttk.Frame(janela)
-    frame_botoes.pack(pady=10)
+    tk.Label(janela, text=texto,
+             justify="left",
+             wraplength=450).pack(padx=20)
 
-    ttk.Button(frame_botoes, text="Fechar", command=janela.destroy).pack(side="left", padx=10)
-    ttk.Button(frame_botoes, text="Resetar Tudo", command=lambda: [resetar_campos(), janela.destroy()]).pack(side="left", padx=10)
+    tk.Button(janela, text="Fechar",
+              command=janela.destroy).pack(pady=5)
+
+    tk.Button(janela, text="Resetar",
+              command=lambda: [resetar_campos(), janela.destroy()]).pack(pady=5)
 
 
-def calcular():
-    try:
-        resultado = "\n=== RESULTADO ESTIMADO ===\n\n"
-
-        # ---------------- OLHOS ---------------- #
-        olhos_pai = olhos_vars["Pai"].get()
-        olhos_mae = olhos_vars["Mãe"].get()
-
-        if olhos_pai == olhos_mae:
-            resultado += f"Cor dos olhos provável: {olhos_pai}\n"
-        elif "Não sei" in [olhos_pai, olhos_mae]:
-            resultado += "Cor dos olhos: informação insuficiente\n"
-        else:
-            resultado += f"Cor dos olhos provável: {random.choice([olhos_pai, olhos_mae])}\n"
-
-        # ---------------- PELE ---------------- #
-        pele_pai = pele_vars["Pai"].get()
-        pele_mae = pele_vars["Mãe"].get()
-
-        if pele_pai == pele_mae:
-            resultado += f"Tom de pele provável: {pele_pai}\n"
-        elif "Não sei" in [pele_pai, pele_mae]:
-            resultado += "Tom de pele: informação insuficiente\n"
-        else:
-            resultado += f"Tom intermediário entre {pele_pai} e {pele_mae}\n"
-
-        # ---------------- CABELO ---------------- #
-        cabelo_pai = cabelo_vars["Pai"].get()
-        cabelo_mae = cabelo_vars["Mãe"].get()
-
-        if cabelo_pai == cabelo_mae:
-            resultado += f"Cor do cabelo provável: {cabelo_pai}\n"
-        elif "Não sei" in [cabelo_pai, cabelo_mae]:
-            resultado += "Cor do cabelo: informação insuficiente\n"
-        else:
-            resultado += f"Possível mistura entre {cabelo_pai} e {cabelo_mae}\n"
-
-        # ---------------- ALTURA ---------------- #
-        altura_pai = converter_altura(altura_vars["Pai"].get())
-        altura_mae = converter_altura(altura_vars["Mãe"].get())
-
-        if altura_pai and altura_mae:
-            altura_media = (altura_pai + altura_mae) / 2
-            resultado += f"Altura estimada: {round(altura_media,2)} m\n"
-        else:
-            resultado += "Altura: informação insuficiente\n"
-
-        # ---------------- DOENÇAS ---------------- #
-        resultado += "\nRisco baseado no histórico familiar:\n"
-
-        todas_doencas = {}
-
-        for pessoa in doencas_vars:
-
-            if doencas_vars[pessoa]["Não possui nenhuma das doenças listadas"].get():
-                continue
-
-            for doenca, var in doencas_vars[pessoa].items():
-                if var.get() and doenca not in ["Não sei", "Não possui nenhuma das doenças listadas"]:
-                    todas_doencas[doenca] = todas_doencas.get(doenca, 0) + 1
-
-        if todas_doencas:
-            for doenca, qtd in todas_doencas.items():
-                risco = round((qtd / len(pessoas)) * 100, 1)
-                resultado += f"- {doenca}: {qtd} familiares ({risco}%)\n"
-        else:
-            resultado += "Nenhuma doença relevante informada.\n"
-
-        resultado += "\n⚠ Modelo educacional simplificado."
-
-        mostrar_resultado(resultado)
-
-    except:
-        mostrar_resultado("Erro no preenchimento dos dados.")
-
-# ---------------- JANELA PRINCIPAL ---------------- #
+# ---------------- JANELA PRINCIPAL ----------------
 
 root = tk.Tk()
-root.title("Analisador Genético Familiar")
-root.geometry("750x650")
+root.title("Simulador Genético Familiar")
+root.geometry("800x600")
+
+# ---------------- CANVAS COM SCROLL ----------------
 
 canvas = tk.Canvas(root)
 scrollbar = ttk.Scrollbar(root, orient="vertical", command=canvas.yview)
-scroll_frame = ttk.Frame(canvas)
+scrollable_frame = tk.Frame(canvas)
 
-scroll_frame.bind(
+scrollable_frame.bind(
     "<Configure>",
     lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
 )
 
-canvas.create_window((0, 0), window=scroll_frame, anchor="nw")
+canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
 canvas.configure(yscrollcommand=scrollbar.set)
-
-def _on_mousewheel(event):
-    widget_focado = root.focus_get()
-
-    # Se estiver focado em Combobox, não faz scroll da página
-    if isinstance(widget_focado, ttk.Combobox):
-        return
-
-    canvas.yview_scroll(int(-1*(event.delta/120)), "units")
-
-root.bind_all("<MouseWheel>", _on_mousewheel)
-
 
 canvas.pack(side="left", fill="both", expand=True)
 scrollbar.pack(side="right", fill="y")
 
-# ---------------- DADOS ---------------- #
+# Scroll só funciona fora de combobox
+def _on_mousewheel(event):
+    if root.focus_get().__class__.__name__ != "TCombobox":
+        canvas.yview_scroll(int(-1*(event.delta/120)), "units")
 
-pessoas = [
-    "Pai", "Mãe",
-    "Avô Paterno", "Avó Paterna",
-    "Avô Materno", "Avó Materna"
-]
+root.bind_all("<MouseWheel>", _on_mousewheel)
 
-cores_olhos = ["Castanho", "Azul", "Verde", "Não sei"]
-cores_pele = ["Clara", "Morena", "Escura", "Não sei"]
-cores_cabelo = ["Preto", "Castanho", "Loiro", "Ruivo", "Não sei"]
-
-lista_doencas = [
-    "Diabetes Tipo 1",
-    "Diabetes Tipo 2",
-    "Hipertensão",
-    "Câncer",
-    "Cardiopatia",
-    "AVC",
-    "Alzheimer",
-    "Parkinson",
-    "Asma",
-    "Depressão",
-    "Ansiedade",
-    "Colesterol Alto",
-    "Obesidade",
-    "Doença Autoimune",
-    "Tireoidite",
-    "Não sei",
-    "Não possui nenhuma das doenças listadas"
-]
+# ---------------- VARIÁVEIS ----------------
 
 olhos_vars = {}
 pele_vars = {}
@@ -193,43 +169,70 @@ cabelo_vars = {}
 altura_vars = {}
 doencas_vars = {}
 
-# ---------------- CAMPOS ---------------- #
+# ---------------- FORMULÁRIO ----------------
 
 for pessoa in pessoas:
+    frame = tk
 
-    frame = ttk.LabelFrame(scroll_frame, text=pessoa)
+    frame = tk.LabelFrame(scrollable_frame, text=pessoa, padx=10, pady=10)
     frame.pack(fill="x", padx=10, pady=5)
 
-    ttk.Label(frame, text="Olhos:").grid(row=0, column=0)
-    olhos_vars[pessoa] = ttk.Combobox(frame, values=cores_olhos)
-    olhos_vars[pessoa].grid(row=0, column=1)
-
-    ttk.Label(frame, text="Pele:").grid(row=1, column=0)
-    pele_vars[pessoa] = ttk.Combobox(frame, values=cores_pele)
-    pele_vars[pessoa].grid(row=1, column=1)
-
-    ttk.Label(frame, text="Cabelo:").grid(row=2, column=0)
-    cabelo_vars[pessoa] = ttk.Combobox(frame, values=cores_cabelo)
-    cabelo_vars[pessoa].grid(row=2, column=1)
-
-    ttk.Label(frame, text="Altura (m):").grid(row=3, column=0)
-    altura_vars[pessoa] = ttk.Combobox(
-        frame,
-        values=[round(x/100,2) for x in range(100, 211)]
-    )
-    altura_vars[pessoa].grid(row=3, column=1)
-
-    ttk.Label(frame, text="Doenças:").grid(row=4, column=0)
-
+    olhos_vars[pessoa] = tk.StringVar()
+    pele_vars[pessoa] = tk.StringVar()
+    cabelo_vars[pessoa] = tk.StringVar()
+    altura_vars[pessoa] = tk.StringVar()
     doencas_vars[pessoa] = {}
+
+    ttk.Label(frame, text="Cor dos Olhos").grid(row=0, column=0)
+    ttk.Combobox(frame, textvariable=olhos_vars[pessoa],
+                 values=olhos_opcoes).grid(row=0, column=1)
+
+    ttk.Label(frame, text="Cor da Pele").grid(row=1, column=0)
+    ttk.Combobox(frame, textvariable=pele_vars[pessoa],
+                 values=pele_opcoes).grid(row=1, column=1)
+
+    ttk.Label(frame, text="Cor do Cabelo").grid(row=2, column=0)
+    ttk.Combobox(frame, textvariable=cabelo_vars[pessoa],
+                 values=cabelo_opcoes).grid(row=2, column=1)
+
+    ttk.Label(frame, text="Altura (ex: 1.75 ou 175)").grid(row=3, column=0)
+    ttk.Entry(frame, textvariable=altura_vars[pessoa]).grid(row=3, column=1)
+
+    ttk.Label(frame, text="Doenças").grid(row=4, column=0)
+
     col = 1
-    for doenca in lista_doencas:
+    for doenca in doencas_lista:
         var = tk.BooleanVar()
-        chk = tk.Checkbutton(frame, text=doenca, variable=var)
-        chk.grid(row=4, column=col)
         doencas_vars[pessoa][doenca] = var
+        ttk.Checkbutton(frame, text=doenca, variable=var)\
+            .grid(row=4, column=col, sticky="w")
         col += 1
 
-ttk.Button(scroll_frame, text="Calcular Probabilidades", command=calcular).pack(pady=20)
+# ---------------- BOTÃO CALCULAR ----------------
+
+tk.Button(scrollable_frame, text="Calcular",
+          bg="#4CAF50",
+          fg="white",
+          font=("Arial", 12),
+          command=calcular).pack(pady=20)
+
+# ---------------- RODAPÉ PROFISSIONAL ----------------
+
+footer = tk.Frame(root, bg="#EAEAEA", height=30)
+footer.pack(side="bottom", fill="x")
+
+ano_atual = datetime.now().year
+
+tk.Label(
+    footer,
+    text=f"Simulador Genético Familiar v1.0  |  Desenvolvido por Fernando Amorim © {ano_atual}",
+    bg="#EAEAEA",
+    fg="#555555",
+    font=("Arial", 8)
+).pack(pady=5)
+
+# ---------------- INICIAR ----------------
 
 root.mainloop()
+
+
